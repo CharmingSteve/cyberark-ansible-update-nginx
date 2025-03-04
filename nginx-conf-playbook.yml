@@ -1,0 +1,36 @@
+---
+- name: Configure NGINX with Local or Remote Config
+  hosts: web_servers
+  become: yes
+  vars:
+    use_remote_config: false  # Set to false to use a local file
+    nginx_local_path: "./nginx.conf"
+    nginx_remote_url: "https://raw.githubusercontent.com/nginx/nginx/master/conf/nginx.conf"
+    nginx_dest: "/etc/nginx/nginx.conf"
+
+  tasks:
+    - name: Use local NGINX config
+      copy:
+        src: "{{ nginx_local_path }}"
+        dest: "{{ nginx_dest }}"
+        owner: root
+        group: root
+        mode: '0644'
+      when: not use_remote_config
+      notify: Restart NGINX
+
+    - name: Fetch remote NGINX config
+      get_url:
+        url: "{{ nginx_remote_url }}"
+        dest: "{{ nginx_dest }}"
+        owner: root
+        group: root
+        mode: '0644'
+      when: use_remote_config
+      notify: Restart NGINX
+
+  handlers:
+    - name: Restart NGINX
+      service:
+        name: nginx
+        state: restarted
